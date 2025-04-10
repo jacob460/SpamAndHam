@@ -2,13 +2,12 @@ from collections import defaultdict
 import string
 import csv
 import random
-import os
-import email
 import math
-import collections
-from zipfile import error
-
+import pickle
 from nltk.corpus import stopwords
+import nltk
+
+nltk.download('stopwords')
 
 def load_data(path):
     try:
@@ -34,17 +33,12 @@ def split_data(data):
 def test_accuracy(data):
     TP, TN, FP, FN = 0,0,0,0
     train, test = split_data(data)
-    print('train len: ', len(train))
-    print('test len: ',len(test))
     model = SpamFilter(train, smoothing=1)
     model.clean_data()
-    # print('rawData: ', model.raw_data[:5])
     model.train()
-    #print('Raw: \n\t', test)
     result = []
     for x in test:
         result.append(model.predict(x[1]))
-    #print('\n\nResult: \n\t', result)
     for index, value in enumerate(result):
         if value[0] == 'ham' and test[index][0] == 'ham':
             TP += 1
@@ -57,8 +51,6 @@ def test_accuracy(data):
     accuracy = (TP + TN) / (TP + TN + FP + FN)
     precision = TP / (TP + FP)
     recall = TP / (TP + FN)
-    print(test[:5])
-    print(result[:5])
     print('{:<10} {:>10} {:>10}'.format('','Pred Pos','Pred Neg'))
     print('{:<10} {:>10} {:>10}'.format('True Pos', TP, FN))
     print('{:<10} {:>10} {:>10}'.format('True Neg',FP,TN))
@@ -69,6 +61,9 @@ def test_accuracy(data):
 
 
     pass
+
+def load_model():
+    return pickle.load(open('model.pickle', 'rb'))
 
 
 class SpamFilter:
@@ -82,9 +77,7 @@ class SpamFilter:
 
 
     def clean_data(self):
-        #print(string.punctuation)
         text = []
-        temp_string = ''
         for x in self.raw_data:
             temp_tokens = []
             temp_string = x[1].lower()
@@ -114,26 +107,20 @@ class SpamFilter:
                     self.spam_words[y] += 1
         pass
 
+    def save(self):
+        with open('model.pickle', 'wb') as output:
+            pickle.dump(self, output)
+        pass
 
 
-    def predict(self, text):   #Complete the predict method so it can receive a text string and will return a ham or spam classification. Use a logarithmic scale.
-        # https://www.saedsayad.com/naive_bayesian.htm
-        #P(A|B) = P(AnB)/P(B)   A given B
-        #P(c|X) = P(x1|c)*P(x2|c)*...*P(xn|c)*P(c)
-        #P(c|x) = P(x|c)P(c) / P(x)
-        #P(c | x) posterior probability of class(target) given predictor(attribute)
-        #P(x | c) prior probability of class
-        # P(c) is the likelihood which is the probability of predictor given class
-        # P(x) is the prior probability of predictor
-        temp_string = ''
+
+    def predict(self, text):
         temp_tokens = []
         temp_string = text.lower()
         total_spam = 0
         total_ham = 0
         total_words_spam = sum(self.spam_words.values())
         total_words_ham = sum(self.ham_words.values())
-        p_spam = 0
-        p_ham = 0
         for y in string.punctuation:
             temp_string = temp_string.replace(y, "")
         temp_string = temp_string.strip()
@@ -148,26 +135,19 @@ class SpamFilter:
                 total_spam += 1
         p_spam = math.log(total_spam/(total_ham+total_spam))
         p_ham = math.log(total_ham/(total_spam+total_ham))
-        #P(A|B) = P(AnB)/P(B)   A given B
         p_word_spam = []
         p_word_ham = []
         for x in temp_string:
             if x in self.vocab:
-                #print(total_words_spam, self.spam_words[x], self.ham_words[x])
                 p_word_spam.append([x, math.log(self.spam_words[x] / total_words_spam)])
                 p_word_ham.append([x, math.log(self.ham_words[x] / total_words_ham)])
 
-        #print('HAM', p_word_ham)
-        #print('T HAM', total_words_ham)
-        #print('SPAM', p_word_spam)
-        #print('T SPAM', total_words_spam)
         sum_p_word_spam = p_spam
         sum_p_word_ham = p_ham
         for x in p_word_spam:
             sum_p_word_spam += x[1]
         for x in p_word_ham:
             sum_p_word_ham += x[1]
-        #print(f"spam: {sum_p_word_spam} vs ham: {sum_p_word_ham}")
         if sum_p_word_ham > sum_p_word_spam:
             return ['ham', text]
         else:
@@ -178,3 +158,42 @@ test_accuracy(data)
 test_accuracy(data)
 test_accuracy(data)
 test_accuracy(data)
+
+
+## Test save and load of a model
+#train, test = split_data(data)
+#model = SpamFilter(train, smoothing=1)
+#model.clean_data()
+#model.train()
+
+#print('m1', model.vocab)
+#model.save()
+
+#model2 = load_model()
+#print('m2', model2.vocab)
+
+
+
+
+# Provide your info below
+student = "Jacob Semerod" # First and last name
+login = "jrs460" # Your PSU login such as jdc308
+
+# Question 1
+# Approximately how long did you spend on this assignment?
+# Set hours equal to a number. You can include decimals if needed.
+hours = 8
+
+# Question 1 - Comments (optional)
+# You can optionally give me feedback about the number of hours by setting a string below:
+q1 = " "
+
+# Question 2
+# Which aspects of this assignment did you find most challenging? Were there any significant stumbling blocks?
+# Provide your answer in the string below:
+q2 = "Implementing the Naive Bayes classification algorithm"
+
+# Question 3
+# Which aspects of this assignment did you like? Is there anything you would have changed?
+# Provide your answer in the string below:
+q3 = "I like the whole assignment, I'm not sure if there is anything I would change."
